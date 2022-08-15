@@ -13,6 +13,9 @@ class App extends Component {
       anio: 2022,
       genero: '',
       canciones: [],
+      buscar: '',
+      songs: [],
+      elimCan: '',
     }
   }
   render() {
@@ -76,17 +79,32 @@ class App extends Component {
                   </div>
                   <button type="submit"
                     className="btn btn-primary">
-                    Guardar
+                    Agregar Cancion
                   </button>
                 </form>
               </div>
             </div>
           </div>
 
-          <div className='col-lg-7'>
-            <table className='table table-bodered'>
+          <div className='row'>
+            <div className="row">
+              <div className="form-group">
+                <label>Buscar:</label>
+                <input type="text" className="form-control" id="txtBuscar"
+                  placeholder="Teclea el titulo de la cancion a buscar"
+                  name="buscar"
+                  onChange={(e) => this.getSongTitle(e)}
+                  value={this.state.buscar}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className='row'>
+            <table className='table table-bodered' id="tabCan">
               <thead>
                 <tr>
+                  <th>Id</th>
                   <th>Titulo</th>
                   <th>Grupo</th>
                   <th>Año</th>
@@ -99,6 +117,7 @@ class App extends Component {
                   this.state.canciones.map(cancion => {
                     return (
                       <tr key={cancion._id}>
+                        <td>{cancion._id}</td>
                         <td>{cancion.titulo}</td>
                         <td>{cancion.grupo}</td>
                         <td>{cancion.anio}</td>
@@ -128,8 +147,81 @@ class App extends Component {
     })
     //console.log([name] + ' ' + value);
   }
+  getSongTitle(e) {
+    const { name, value } = e.target;
+    this.setState({
+      [name]: value
+    })
+    console.log(value)
+    console.log('metodo obtener nombre del modelo')
+    var va = value;
+    if (this.state.elimCan === "si"){
+      va = "";
+    }
+    fetch('https://server-0890.uc.r.appspot.com/api/songs/' + va)
+      .then(res => res.json())
+      .then(data => {
+        console.log(data);
+        this.setState({ songs: data })
+      });
+
+    setTimeout(() => {
+      var incId = 1;
+      this.borrarTabla();
+      var tabla = document.getElementById('tabCan');
+      this.state.songs.map(song => {
+        console.log('resultado' + song.titulo)
+        let tr = document.createElement('tr');
+        for (var i = 0; i < 6; i++) {
+          //for (const atributo of Object.values(this.state.songs)) {
+          //console.log(i);
+          var celda = document.createElement('td');
+          if (i === 0) {
+            celda.textContent = song._id
+            celda.id = incId;
+            incId++;
+            //console.log('id ' + celda.id)
+          } else if (i === 1) {
+            celda.textContent = song.titulo;
+          } else if (i === 2) {
+            celda.textContent = song.grupo;
+          } else if (i === 3) {
+            celda.textContent = song.anio;
+          } else if (i === 4) {
+            celda.textContent = song.genero;
+          } else if (i === 5){
+            var botonE = document.createElement("button");
+            //var icon = document.createElement("span");
+            botonE.id = "btnEli";
+            //icon.className = "bi bi-trash-fill"; //onChange={(e) => this.handleChange(e)}
+            botonE.addEventListener("click", (event) => { this.eliminarCancion(event) });
+            botonE.innerHTML = "Eliminar";
+            botonE.className = "btn btn-danger";
+            //botonE.appendChild(icon);
+            botonE.value = incId - 1;
+            //console.log('id ' + incId);
+            celda.appendChild(botonE);
+          }
+          tr.appendChild(celda);
+
+        }
+        tr.appendChild(celda);
+        tabla.appendChild(tr);
+
+      })
+      document.body.appendChild(tabla);
+    }, 1000)
+  }
+  borrarTabla() {
+    var elmTable = document.getElementById('tabCan');
+    var tableRows = elmTable.getElementsByTagName('tr');
+    var rowCount = tableRows.length;
+    for (var i = rowCount - 1; i > 0; i--) {
+      document.getElementById('tabCan').deleteRow(i);
+    }
+  }
+
   saveSong(e) {
-    //e.preventDefault();
     const url = 'https://server-0890.uc.r.appspot.com/api/songs';
     fetch(url, {
       method: 'POST',
@@ -163,7 +255,7 @@ class App extends Component {
       .then(data => this.setState({ canciones: data }));
   }
   deleteSong(id) {
-    if (window.confirm('¿Desea eliminar este usuario:?')) {
+    if (window.confirm('¿Desea eliminar esta cancion:?')) {
       fetch('https://server-0890.uc.r.appspot.com/api/songs/' + id, {
         method: 'DELETE',
         headers: {
@@ -178,6 +270,29 @@ class App extends Component {
         })
         .catch(err => console.error(err));
     }
+  }
+  eliminarCancion(e) {
+    if (window.confirm('¿Desea eliminar esta cancion:?')) {
+      //this.borrarTabla();
+      this.setState({ elimCan:"si"});
+      var valorId = document.getElementById(e.target.value).innerText;
+      fetch('https://server-0890.uc.r.appspot.com/api/songs/' + valorId, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'content-type': 'application/json'
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          this.getSongTitle(e);
+          console.log(data)
+        })
+        .catch(err => console.log(err));
+    }
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000)
   }
 }
 
